@@ -3,261 +3,211 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RPG Dashboard - Castle Dungeon</title>
+    <title>RPG Dashboard - Ranking de Baús</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@800&display=swap" rel="stylesheet">
     <style>
-        body {
-            background-image: url('https://images.unsplash.com/photo-1599408162449-604433f0059e?q=80&w=2070&auto=format&fit=crop');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            background-color: #0f1115;
-            min-height: 100vh;
+        :root { --bg-dark: #0f1115; --card-bg: rgba(26, 28, 32, 0.9); }
+        body { background-color: var(--bg-dark); color: #d1d5db; font-family: 'Inter', sans-serif; overflow-x: hidden; }
+        
+        .card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; padding: 2rem; }
+        .hero-card { 
+            background: var(--card-bg); border: 1px solid #374151; border-radius: 12px; 
+            padding: 1.5rem; display: flex; align-items: center; transition: all 0.3s ease;
         }
+        .hero-card.selected { border-color: #6366f1; background: #1a1d23; box-shadow: 0 0 15px rgba(99, 102, 241, 0.3); transform: scale(1.02); }
+        .chart-container { width: 140px; height: 140px; margin-left: auto; }
 
-        .overlay-dungeon {
-            background-color: rgba(15, 17, 21, 0.94);
-            backdrop-filter: blur(4px);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+        .overlay-dungeon { background-color: rgba(15, 17, 21, 0.95); min-height: 100vh; display: flex; flex-direction: column; }
+        .dungeon-font { font-family: 'JetBrains Mono', monospace; }
+        
+        /* LETREIRO DO TOPO - FOCO NO RANKING */
+        .marquee-container { background: #000; border-bottom: 2px solid #fbbf24; padding: 12px 0; overflow: hidden; }
+        .marquee-content { 
+            display: inline-block; white-space: nowrap; 
+            animation: marquee-scroll 35s linear infinite; 
+            font-weight: 900;
         }
-
-        .dungeon-font {
-            font-family: 'JetBrains Mono', monospace;
-            text-shadow: 2px 2px 0px rgba(0, 0, 0, 0.9);
-        }
-
-        @keyframes ticker-scroll {
+        @keyframes marquee-scroll {
             0% { transform: translateX(100vw); }
             100% { transform: translateX(-100%); }
         }
         
-        .animate-ticker {
-            display: inline-block;
-            white-space: nowrap;
-            animation: ticker-scroll 25s linear infinite;
+        .view-toggle {
+            position: fixed; bottom: 2rem; right: 2rem; width: 60px; height: 60px;
+            border-radius: 50%; background: #6366f1; color: white; z-index: 9999;
+            display: flex; align-items: center; justify-content: center; transition: all 0.3s;
         }
-
-        .custom-scroll::-webkit-scrollbar { width: 6px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-        
-        .card-active { 
-            border-color: #fbbf24 !important; 
-            background-color: rgba(55, 65, 81, 0.5) !important; 
-        }
-
-        .stone-card {
-            background: rgba(26, 28, 32, 0.85);
-            border: 1px solid #374151;
-            transition: all 0.2s ease;
-        }
+        .view-toggle:hover { background: #fbbf24; transform: rotate(90deg); }
+        .hidden-view { display: none !important; }
     </style>
 </head>
-<body class="text-gray-300 font-sans">
+<body>
 
-    <div class="overlay-dungeon">
-        
-        <section class="ticker-container bg-black/80 py-4 overflow-hidden border-b-2 border-gray-700 shadow-2xl">
-            <div id="ticker-display" class="animate-ticker text-2xl dungeon-font text-gray-500 uppercase">
-                Sincronizando registros...
-            </div>
-        </section>
+    <button class="view-toggle" onclick="toggleView()">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18"/><path d="M3 9h18"/></svg>
+    </button>
+
+    <div id="view-cards" class="min-h-screen">
+        <header class="p-8 pb-0">
+            <h1 class="text-4xl font-black text-white uppercase tracking-tighter dungeon-font">Guild Tracker</h1>
+            <p class="text-gray-500 text-xs font-bold uppercase mt-2">Mural de Heróis</p>
+        </header>
+        <div id="grid-container" class="card-grid"></div>
+    </div>
+
+    <div id="view-dungeon" class="overlay-dungeon hidden-view">
+        <div class="marquee-container">
+            <div id="ticker-display" class="marquee-content text-xl dungeon-font text-amber-500 uppercase"></div>
+        </div>
 
         <div class="flex flex-1 overflow-hidden">
-            <aside class="w-1/4 bg-black/40 border-r border-gray-800 flex flex-col min-h-[600px]">
-                <div class="p-4 border-b border-gray-800 flex justify-between items-center bg-black/20">
-                    <button onclick="DashboardApp.clearFilter()" class="font-bold text-gray-400 uppercase text-[10px] tracking-widest hover:text-white transition-colors">
-                        Mural de Heróis
-                    </button>
-                    <span id="aside-count" class="bg-gray-800 text-[10px] px-2 py-1 rounded text-gray-400 font-bold border border-gray-700">0</span>
-                </div>
-                <div id="character-list" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scroll">
-                </div>
+            <aside class="w-1/4 bg-black/40 border-r border-gray-800 flex flex-col">
+                <div class="p-4 border-b border-gray-800 text-[10px] text-gray-500 font-black uppercase text-center tracking-widest">Membros</div>
+                <div id="character-list" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
             </aside>
 
-            <main class="flex-1 p-8 overflow-y-auto custom-scroll">
-                <header class="mb-10 flex justify-between items-center border-b border-gray-700 pb-4">
-                    <div>
-                        <h1 class="text-4xl font-black text-white tracking-tighter italic uppercase">Câmara do Castelo</h1>
-                        <p class="text-gray-500 text-xs uppercase tracking-widest mt-1">Status de Combate</p>
+            <main class="flex-1 p-8 overflow-y-auto">
+                <div class="grid grid-cols-3 gap-6 mb-8 text-center">
+                    <div class="bg-black/20 p-6 border-b-2 border-indigo-500">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase">Dificuldade Média</span>
+                        <div id="stat-avg-diff" class="text-4xl font-black text-white">0</div>
                     </div>
-                    <button onclick="DashboardApp.resetData()" class="text-[10px] text-gray-600 hover:text-red-500 transition-colors uppercase font-bold">Expurgar Dados</button>
-                </header>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-                    <div class="stone-card p-6 border-l-4 border-indigo-500 shadow-xl">
-                        <span class="text-gray-500 text-[10px] font-bold uppercase">Dificuldade</span>
-                        <div id="stat-avg-difficulty" class="text-3xl font-black text-gray-100">0.0</div>
+                    <div class="bg-black/20 p-6 border-b-2 border-red-600">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase text-red-400">Vida Média (PV)</span>
+                        <div id="stat-avg-hp" class="text-4xl font-black text-red-500">0</div>
                     </div>
-                    <div class="stone-card p-6 border-l-4 border-amber-500 shadow-xl">
-                        <span class="text-gray-500 text-[10px] font-bold uppercase">Baús</span>
-                        <div id="stat-total-chests" class="text-3xl font-black text-amber-400">0</div>
-                    </div>
-                    <div class="stone-card p-6 border-l-4 border-red-600 shadow-xl">
-                        <span class="text-gray-500 text-[10px] font-bold uppercase">Vida</span>
-                        <div id="stat-total-hp" class="text-3xl font-black text-red-500">0</div>
+                    <div class="bg-black/20 p-6 border-b-2 border-amber-500">
+                        <span class="text-[10px] font-bold text-gray-500 uppercase text-amber-400">Média de Baús</span>
+                        <div id="stat-avg-chests" class="text-4xl font-black text-amber-500">0</div>
                     </div>
                 </div>
-
-                <section class="stone-card p-8 rounded shadow-2xl h-[450px] mb-8">
+                <div class="bg-black/30 p-6 border border-gray-800 h-[400px]">
                     <canvas id="main-chart"></canvas>
-                </section>
+                </div>
             </main>
         </div>
 
-        <footer class="bg-black/90 border-t border-gray-700 p-6 w-full mt-auto">
-            <form id="player-form" class="max-w-screen-2xl mx-auto grid grid-cols-1 md:grid-cols-5 gap-4">
-                <input type="text" id="in-name" placeholder="NOME DO HERÓI" required class="bg-gray-900 border border-gray-700 p-3 text-sm text-gray-300 outline-none focus:border-indigo-500 uppercase font-bold">
-                <input type="number" id="in-diff" placeholder="DIF" value="10" required class="bg-gray-900 border border-gray-700 p-3 text-sm text-gray-300 outline-none">
-                <input type="number" id="in-hp" placeholder="PV" value="50" required class="bg-gray-900 border border-gray-700 p-3 text-sm text-gray-300 outline-none">
-                <input type="number" id="in-chests" placeholder="BAÚS" value="5" required class="bg-gray-900 border border-gray-700 p-3 text-sm text-gray-300 outline-none">
-                <button type="submit" class="bg-indigo-700 hover:bg-indigo-600 text-white font-black text-xs uppercase tracking-widest transition-all p-3">Sincronizar</button>
+        <footer class="bg-black border-t border-gray-800 p-6">
+            <form id="player-form" class="max-w-7xl mx-auto flex gap-4">
+                <input type="text" id="in-name" placeholder="NOME" required class="flex-1 bg-gray-900 border border-gray-700 p-3 text-sm rounded outline-none focus:border-indigo-500 uppercase text-white font-bold">
+                <input type="number" id="in-diff" placeholder="DIF" class="w-24 bg-gray-900 border border-gray-700 p-3 text-sm rounded text-white">
+                <input type="number" id="in-hp" placeholder="PV" class="w-24 bg-gray-900 border border-gray-700 p-3 text-sm rounded text-white">
+                <input type="number" id="in-chests" placeholder="BAÚS" class="w-24 bg-gray-900 border border-gray-700 p-3 text-sm rounded text-white">
+                <button type="submit" id="submit-btn" class="px-8 bg-indigo-700 text-white font-black text-xs uppercase rounded">Sincronizar</button>
             </form>
         </footer>
     </div>
 
     <script>
-        const DashboardApp = {
-            storageKey: 'periculum_dungeon_v1',
-            chart: null,
-            filterIndex: null,
-            defaultData: [
-                { nome: 'Gerard', dificuldade: 15, pv: 40, baus: 8 },
-                { nome: 'Ragnar', dificuldade: 10, pv: 60, baus: 15 }
-            ],
+        const STORAGE_KEY = 'periculum_v8_ranking_fix';
+        let mainChart = null;
+        let editIdx = null;
 
-            init() {
-                document.getElementById('player-form').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    this.addPlayer();
-                });
-                this.render();
-            },
+        const getData = () => JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+            { nome: 'RAGNAR', dificuldade: 15, pv: 80, baus: 100 },
+            { nome: 'YENNEFER', dificuldade: 25, pv: 40, baus: 75 },
+            { nome: 'GERARD', dificuldade: 18, pv: 55, baus: 40 }
+        ];
 
-            getPlayers() {
-                const stored = localStorage.getItem(this.storageKey);
-                return stored ? JSON.parse(stored) : this.defaultData;
-            },
-
-            addPlayer() {
-                const players = this.getPlayers();
-                players.push({
-                    nome: document.getElementById('in-name').value.trim(),
-                    dificuldade: Number(document.getElementById('in-diff').value),
-                    pv: Number(document.getElementById('in-hp').value),
-                    baus: Number(document.getElementById('in-chests').value)
-                });
-                localStorage.setItem(this.storageKey, JSON.stringify(players));
-                this.filterIndex = null;
-                this.render();
-                document.getElementById('player-form').reset();
-            },
-
-            applyFilter(index) {
-                this.filterIndex = (this.filterIndex === index) ? null : index;
-                this.render();
-            },
-
-            clearFilter() {
-                this.filterIndex = null;
-                this.render();
-            },
-
-            updateTicker(players) {
-                const ticker = document.getElementById('ticker-display');
-                ticker.innerText = players.length ? players.map(p => `[ ${p.nome.toUpperCase()} | DIF ${p.dificuldade} | PV ${p.pv} | BAÚS ${p.baus} ]`).join('  •  ') : "Vazio...";
-            },
-
-            renderSidebar(players) {
-                const container = document.getElementById('character-list');
-                document.getElementById('aside-count').innerText = players.length;
-                container.innerHTML = players.map((p, index) => `
-                    <div onclick="DashboardApp.applyFilter(${index})" 
-                         class="stone-card p-4 border cursor-pointer transition-all ${this.filterIndex === index ? 'card-active' : 'hover:border-gray-500'}">
-                        <div class="mb-3">
-                            <span class="font-black text-xs ${this.filterIndex === index ? 'text-white' : 'text-gray-400'} uppercase">${p.nome}</span>
-                        </div>
-                        <div class="grid grid-cols-3 gap-1 text-[9px] font-bold text-center">
-                            <div class="bg-black/50 p-1 border border-indigo-900/30 text-indigo-400">DIF ${p.dificuldade}</div>
-                            <div class="bg-black/50 p-1 border border-red-900/30 text-red-500">PV ${p.pv}</div>
-                            <div class="bg-black/50 p-1 border border-amber-900/30 text-amber-500">B ${p.baus}</div>
-                        </div>
-                    </div>
-                `).join('');
-            },
-
-            renderChart(filteredData) {
-                const ctx = document.getElementById('main-chart').getContext('2d');
-                if (this.chart) this.chart.destroy();
-                
-                const isSingle = this.filterIndex !== null;
-
-                this.chart = new Chart(ctx, {
-                    type: isSingle ? 'radar' : 'bar',
-                    data: {
-                        labels: ['Dificuldade', 'PV', 'Baús'],
-                        datasets: isSingle ? [{
-                            label: filteredData[0].nome,
-                            data: [filteredData[0].dificuldade, filteredData[0].pv, filteredData[0].baus],
-                            backgroundColor: 'rgba(251, 191, 36, 0.4)',
-                            borderColor: '#fbbf24',
-                            pointBackgroundColor: '#fff',
-                            pointRadius: 6,
-                            fill: true
-                        }] : [
-                            { label: 'Dificuldade', data: filteredData.map(p => p.dificuldade), backgroundColor: '#6366f1' },
-                            { label: 'PV', data: filteredData.map(p => p.pv), backgroundColor: '#ef4444' },
-                            { label: 'Baús', data: filteredData.map(p => p.baus), backgroundColor: '#fbbf24' }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: isSingle ? {
-                            r: {
-                                beginAtZero: true,
-                                min: 0,
-                                grid: { color: '#374151' },
-                                angleLines: { color: '#374151' },
-                                pointLabels: { color: '#9ca3af', font: { size: 14, weight: 'bold' } },
-                                ticks: { display: false }
-                            }
-                        } : {
-                            y: { beginAtZero: true, grid: { color: '#1f2937' }, ticks: { color: '#9ca3af' } },
-                            x: { ticks: { color: '#9ca3af' }, grid: { display: false } }
-                        },
-                        plugins: { legend: { labels: { color: '#9ca3af' } } }
-                    }
-                });
-            },
-
-            render() {
-                const allPlayers = this.getPlayers();
-                const dataToShow = this.filterIndex !== null ? [allPlayers[this.filterIndex]] : allPlayers;
-                
-                this.updateTicker(allPlayers);
-                this.renderSidebar(allPlayers);
-                this.renderChart(dataToShow);
-
-                const count = dataToShow.length || 1;
-                document.getElementById('stat-avg-difficulty').innerText = (dataToShow.reduce((acc, p) => acc + p.dificuldade, 0) / count).toFixed(1);
-                document.getElementById('stat-total-chests').innerText = dataToShow.reduce((acc, p) => acc + p.baus, 0);
-                document.getElementById('stat-total-hp').innerText = dataToShow.reduce((acc, p) => acc + p.pv, 0);
-            },
-
-            resetData() {
-                if(confirm("Expurgar registros?")) {
-                    localStorage.removeItem(this.storageKey);
-                    this.filterIndex = null;
-                    this.render();
-                }
-            }
+        const saveData = (data) => {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            render();
         };
 
-        window.onload = () => DashboardApp.init();
+        function render() {
+            const players = getData();
+            const count = players.length || 1;
+
+            // 1. MURAL
+            const grid = document.getElementById('grid-container');
+            grid.innerHTML = '';
+            players.forEach((p, i) => {
+                const card = document.createElement('div');
+                card.className = `hero-card cursor-pointer`;
+                card.innerHTML = `
+                    <div class="flex-1">
+                        <h3 class="text-xl font-black text-white uppercase">${p.nome}</h3>
+                        <p class="text-[10px] text-gray-500 font-bold mt-1">BAÚS: ${p.baus} | PV: ${p.pv}</p>
+                        <div class="flex gap-2 mt-2">
+                            <button onclick="prepareEdit(${i})" class="text-[9px] text-indigo-400 font-black uppercase">Editar</button>
+                            <button onclick="remove(${i})" class="text-[9px] text-red-600 font-black uppercase">Remover</button>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            // 2. LOGICA DO LETREIRO - EXCLUSIVAMENTE RANKING
+            const ranked = [...players].sort((a, b) => b.baus - a.baus);
+            const rankingString = ranked.map((p, index) => 
+                `[#${index + 1}] ${p.nome}: ${p.baus} BAÚS`
+            ).join(' --- ');
+            
+            document.getElementById('ticker-display').innerText = `RANKING DE BAÚS: ${rankingString}`;
+
+            // 3. DASHBOARD STATS
+            document.getElementById('stat-avg-diff').innerText = (players.reduce((a, b) => a + b.dificuldade, 0) / count).toFixed(1);
+            document.getElementById('stat-avg-hp').innerText = (players.reduce((a, b) => a + b.pv, 0) / count).toFixed(1);
+            document.getElementById('stat-avg-chests').innerText = (players.reduce((a, b) => a + b.baus, 0) / count).toFixed(1);
+
+            document.getElementById('character-list').innerHTML = players.map((p, i) => `
+                <div class="p-2 bg-black/40 border border-gray-800 rounded flex justify-between text-[10px] font-black uppercase text-white">
+                    <span>${p.nome}</span>
+                    <button onclick="remove(${i})" class="text-red-900">X</button>
+                </div>
+            `).join('');
+
+            updateChart(players);
+        }
+
+        function updateChart(players) {
+            const ctx = document.getElementById('main-chart').getContext('2d');
+            if (mainChart) mainChart.destroy();
+            mainChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: players.map(p => p.nome),
+                    datasets: [{ label: 'Baús', data: players.map(p => p.baus), backgroundColor: '#fbbf24' }]
+                },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        document.getElementById('player-form').onsubmit = (e) => {
+            e.preventDefault();
+            const data = getData();
+            const obj = {
+                nome: document.getElementById('in-name').value.toUpperCase(),
+                dificuldade: Number(document.getElementById('in-diff').value),
+                pv: Number(document.getElementById('in-hp').value),
+                baus: Number(document.getElementById('in-chests').value)
+            };
+            if (editIdx !== null) { data[editIdx] = obj; editIdx = null; }
+            else { data.push(obj); }
+            saveData(data);
+            e.target.reset();
+        };
+
+        const remove = (i) => { if(confirm('Remover?')) { const d = getData(); d.splice(i, 1); saveData(d); } };
+        const prepareEdit = (i) => {
+            const p = getData()[i];
+            document.getElementById('in-name').value = p.nome;
+            document.getElementById('in-diff').value = p.dificuldade;
+            document.getElementById('in-hp').value = p.pv;
+            document.getElementById('in-chests').value = p.baus;
+            editIdx = i;
+            if(!document.getElementById('view-cards').classList.contains('hidden-view')) toggleView();
+        };
+
+        const toggleView = () => {
+            document.getElementById('view-cards').classList.toggle('hidden-view');
+            document.getElementById('view-dungeon').classList.toggle('hidden-view');
+            render();
+        };
+
+        window.onload = render;
     </script>
 </body>
 </html>
