@@ -35,5 +35,4 @@ Este projeto foi construído focando em performance e simplicidade, utilizando t
    git clone [https://github.com/seu-usuario/nome-do-repositorio.git](https://github.com/seu-usuario/nome-do-repositorio.git)
 
 
-## creditos:
-Powered by AI
+-> Powered by AI
