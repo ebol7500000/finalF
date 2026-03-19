@@ -33,3 +33,7 @@ Este projeto foi construído focando em performance e simplicidade, utilizando t
 1. Clone o repositório:
    ```bash
    git clone [https://github.com/seu-usuario/nome-do-repositorio.git](https://github.com/seu-usuario/nome-do-repositorio.git)
+
+
+## creditos:
+Powered by AI
