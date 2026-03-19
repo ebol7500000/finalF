@@ -3,7 +3,7 @@
 Uma experiência de RPG baseada em texto, focada em estratégia, gerenciamento de recursos e progressão contínua, rodando diretamente no navegador.
 
 ![Status do Projeto](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)
-![Licença](https://img.shields.io/badge/license-MIT-blue)
+
 
 ## 🎮 Sobre o Jogo
 
